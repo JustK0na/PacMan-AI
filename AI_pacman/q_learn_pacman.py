@@ -125,7 +125,7 @@ class QLearningAgent:
         self.gamma = 0.99            # Współczynnik dyskontowania (patrzenie w przyszłość)
         
         # Unikalna ścieżka dla każdego procesu
-        self.brain_file = f"F:\\vs_code_workspace\\PacMan\\AI_pacman\\brain_sim_{sim_id}.pkl"
+        self.brain_file = f"AI_pacman\\brain_{sim_id}.pkl"
 
     def get_state(self, player, ghosts, bfs_suggested_action, is_scared_global, current_map):
         """
@@ -537,7 +537,7 @@ def log_to_csv(sim_id, episode_num, score, total_reward, epsilon, q_table_size, 
     """
     Zapisuje statystyki epizodu do osobnego pliku CSV dla każdej symulacji.
     """
-    file_path = f"F:\\vs_code_workspace\\PacMan\\AI_pacman\\analysis\\stats_sim_{sim_id}.csv"
+    file_path = f"AI_pacman\\analysis\\stats_sim_{sim_id}.csv"
     
     # Sprawdzamy czy plik istnieje, aby wiedzieć czy dopisać nagłówek
     file_exists = os.path.isfile(file_path)
