@@ -49,28 +49,7 @@ GAME_MAP_TEMPLATE = [
 GAME_MAP = copy.deepcopy(GAME_MAP_TEMPLATE)
 
 
-####### NETWORK
-def send_msg(conn, data_dict):
-    msg = json.dumps(data_dict).encode()
-    conn.sendall(len(msg).to_bytes(4, "big") + msg)
-
-def recv_msg(conn):
-    length_bytes = conn.recv(4)
-    if not length_bytes:
-        return None
-    length = int.from_bytes(length_bytes, "big")
-
-    data = b""
-    while len(data) < length:
-        packet = conn.recv(length - len(data))
-        if not packet:
-            return None
-        data += packet
-
-    return json.loads(data.decode())
-
-
-# --- ŚCIANY BEZ OFFSETU (Liczymy od 0,0) ---
+# --- ŚCIANY BEZ OFFSETU  ---
 WALLS = []
 for r, row in enumerate(GAME_MAP):
     for c, tile in enumerate(row):
@@ -97,7 +76,7 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont('arial', 24, bold=True) 
 big_font = pygame.font.SysFont('arial', 40, bold=True)
 
-# --- WIRTUALNY EKRAN GRY ---
+
 game_surface = pygame.Surface((GAME_WIDTH, GAME_HEIGHT)).convert()
 
 # Zmienne globalne
@@ -143,12 +122,12 @@ class Ghost:
             self.rect.topleft = (self.x, self.y)
             return
 
-        # --- 1. TUNEL (NAPRAWIONY) ---
+
         # Poziomy (Lewo/Prawo)
         if self.rect.right < 0: self.x = GAME_WIDTH - self.rect.width
         elif self.rect.left > GAME_WIDTH: self.x = 0
         
-        # Pionowy (Góra/Dół) - TEGO BRAKOWAŁO!
+        # Pionowy (Góra/Dół)
         if self.rect.bottom < 0: self.y = GAME_HEIGHT - self.rect.height
         elif self.rect.top > GAME_HEIGHT: self.y = 0
         
@@ -409,12 +388,12 @@ ghost_mode = "CHASE"
 mode_timer = 0
 CHANGE_MODE_TIME = 300
 
-HOST = ''                 # Symbolic name meaning all available interfaces
+HOST = ''                 
 PORT = 5555
 
 last_input = None
 conn = None
-
+buffer = ""
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 server.listen(1)
@@ -428,21 +407,29 @@ print("Client connected:", addr)
 running = True
 while running:
 
-    #print("Game running?")
+    state = {"player_x": player.x,
+             "player_y": player.y}
+
+    conn.send((json.dumps(state) + '\n').encode())
+
     data = conn.recv(1024).decode()
-    #print("Game running? 2")
     if not data:
         break
+    buffer += data
+    while '\n' in buffer:
+        line, buffer = buffer.split('\n', 1)
+        if line:
+            print("FROM CLIENT:", line)
 
-    print("Data: ", data)
-    if str(data) == "UP":
-        player.next_direction = (0,-1)
-    elif str(data) == "DOWN":
-        player.next_direction = (0,1)
-    elif str(data) == "LEFT":
-        player.next_direction = (-1,0)
-    elif str(data) == "RIGHT":
-        player.next_direction = (1,0)
+        print("Data: ", data)
+        if line == "UP":
+            player.next_direction = (0, -1)
+        elif line == "DOWN":
+            player.next_direction = (0, 1)
+        elif line == "LEFT":
+            player.next_direction = (-1, 0)
+        elif line == "RIGHT":
+            player.next_direction = (1, 0)
 
 
     for event in pygame.event.get():
@@ -523,8 +510,6 @@ while running:
 
     # WKLEJAMY KARTKĘ Z GRĄ NA EKRAN GŁÓWNY
     screen.blit(game_surface, (0, UI_HEIGHT))
-    send_mess = "u can go"
-    conn.send(send_mess.encode())
     pygame.display.flip()
     clock.tick(60)
 
